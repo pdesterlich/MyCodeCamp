@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MyCodeCamp.Data;
@@ -92,10 +93,32 @@ namespace MyCodeCamp.Controllers
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                throw;
             }
+
             return BadRequest("Couldn't update Camp");
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var oldCamp = _repo.GetCamp(id);
+
+                if (oldCamp == null) return NotFound($"Could not find a camp with an ID of {id}");
+
+                _repo.Delete(oldCamp);
+
+                if (await _repo.SaveAllAsync())
+                {
+                    return Ok();
+                }
+            }
+            catch (Exception e)
+            {
+            }
+
+            return BadRequest("Couldn't delete Camp");
         }
     }
 }
