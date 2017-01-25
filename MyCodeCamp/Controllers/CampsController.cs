@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MyCodeCamp.Data;
 using MyCodeCamp.Data.Entities;
@@ -8,7 +9,7 @@ namespace MyCodeCamp.Controllers
     [Route("api/[controller]")]
     public class CampsController: Controller
     {
-        private ICampRepository _repo;
+        private readonly ICampRepository _repo;
 
         public CampsController(ICampRepository repo)
         {
@@ -23,21 +24,37 @@ namespace MyCodeCamp.Controllers
             return Ok(camps);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id}", Name = "CampGet")]
         public IActionResult Get(int id, bool includeSpeakers = false)
         {
             try
             {
-                Camp camp = null;
-
-                if (includeSpeakers) camp = _repo.GetCampWithSpeakers(id);
-                else camp = _repo.GetCamp(id);
+                var camp = includeSpeakers ? _repo.GetCampWithSpeakers(id) : _repo.GetCamp(id);
 
                 if (camp == null) return NotFound($"Camp {id} was not found");
 
                 return Ok(camp);
             }
-            catch (Exception e)
+            catch (Exception)
+            {
+                return BadRequest();
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Post([FromBody]Camp model)
+        {
+            try
+            {
+                _repo.Add(model);
+                if (await _repo.SaveAllAsync())
+                {
+                    var newUri = Url.Link("CampGet", new {id = model.Id});
+
+                    return Created(newUri, model);
+                }
+            }
+            catch (Exception)
             {
             }
 
